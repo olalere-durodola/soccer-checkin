@@ -7,7 +7,7 @@ import { ConfirmModal } from '../components/ConfirmModal'
 
 interface LatLng { lat: number; lng: number }
 
-function LocationPicker({ location, onPick }: { location: LatLng | null; onPick: (ll: LatLng) => void }) {
+function LocationPicker({ onPick }: { onPick: (ll: LatLng) => void }) {
   useMapEvents({ click: e => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }) })
   return null
 }
@@ -104,7 +104,7 @@ export function CreateEvent() {
         <div style={{ height: 350, marginBottom: 16, border: '1px solid #e5e7eb', borderRadius: 4 }}>
           <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <LocationPicker location={location} onPick={setLocation} />
+            <LocationPicker onPick={setLocation} />
             {location && <Circle center={[location.lat, location.lng]} radius={radius} />}
           </MapContainer>
         </div>

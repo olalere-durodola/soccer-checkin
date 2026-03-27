@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useActiveEvent } from '../hooks/useActiveEvent'
@@ -23,6 +23,11 @@ export function CheckIn() {
   const [loading, setLoading] = useState(false)
   const [confirmed, setConfirmed] = useState<StoredCheckin | null>(null)
 
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    return () => { mountedRef.current = false }
+  }, [])
+
   // Check localStorage on mount / when active event changes
   useEffect(() => {
     if (!event) return
@@ -37,7 +42,7 @@ export function CheckIn() {
     } catch {
       // ignore corrupt localStorage
     }
-  }, [event])
+  }, [event?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,6 +62,7 @@ export function CheckIn() {
       )
       coords = pos.coords
     } catch (err: unknown) {
+      if (!mountedRef.current) return
       const geoErr = err as GeolocationPositionError
       if (geoErr.code === GeolocationPositionError.PERMISSION_DENIED) {
         setError('Please allow location access to check in')
@@ -68,6 +74,7 @@ export function CheckIn() {
     }
 
     // 2. Check GPS accuracy
+    if (!mountedRef.current) return
     if (coords.accuracy > 50) {
       setError('Your GPS signal is too weak, please try again outside or near a window')
       setLoading(false)
@@ -96,6 +103,7 @@ export function CheckIn() {
         return
       }
     } catch {
+      if (!mountedRef.current) return
       setError('Could not verify your check-in status, please try again')
       setLoading(false)
       return
@@ -112,6 +120,7 @@ export function CheckIn() {
         coords: { lat: coords.latitude, lng: coords.longitude },
       })
     } catch {
+      if (!mountedRef.current) return
       setError('Something went wrong, please try again')
       setLoading(false)
       return
@@ -127,6 +136,7 @@ export function CheckIn() {
       time,
     }
     localStorage.setItem(LOCAL_KEY, JSON.stringify(stored))
+    if (!mountedRef.current) return
     setConfirmed(stored)
     setLoading(false)
   }

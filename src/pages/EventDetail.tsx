@@ -15,22 +15,26 @@ export function EventDetail() {
 
   useEffect(() => {
     if (!eventId) return
-    getDoc(doc(db, 'events', eventId)).then(snap => {
-      if (snap.exists()) {
-        const d = snap.data()
-        setEvent({
-          id: snap.id,
-          name: d.name,
-          date: d.date.toDate(),
-          location: d.location,
-          radius: d.radius,
-          active: d.active,
-          createdAt: d.createdAt.toDate(),
-          closedAt: d.closedAt?.toDate() ?? null,
-        })
-      }
-      setLoading(false)
-    })
+    getDoc(doc(db, 'events', eventId))
+      .then(snap => {
+        if (snap.exists()) {
+          const d = snap.data()
+          setEvent({
+            id: snap.id,
+            name: d.name,
+            date: d.date.toDate(),
+            location: d.location,
+            radius: d.radius,
+            active: d.active,
+            createdAt: d.createdAt.toDate(),
+            closedAt: d.closedAt?.toDate() ?? null,
+          })
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        setLoading(false)
+      })
   }, [eventId])
 
   if (loading) return <p style={{ padding: 24 }}>Loading...</p>

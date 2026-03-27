@@ -21,33 +21,39 @@ export function AdminDashboard() {
 
   useEffect(() => {
     const fetchPast = async () => {
-      const q = query(
-        collection(db, 'events'),
-        where('active', '==', false),
-        orderBy('date', 'desc')
-      )
-      const snap = await getDocs(q)
-      const events: Event[] = snap.docs.map(d => {
-        const data = d.data()
-        return {
-          id: d.id,
-          name: data.name,
-          date: data.date.toDate(),
-          location: data.location,
-          radius: data.radius,
-          active: data.active,
-          createdAt: data.createdAt.toDate(),
-          closedAt: data.closedAt?.toDate() ?? null,
-        }
-      })
-
-      // Fetch check-in counts in parallel
-      const counts = await Promise.all(
-        events.map(e =>
-          getDocs(query(collection(db, 'checkins'), where('eventId', '==', e.id))).then(s => s.size)
+      try {
+        const q = query(
+          collection(db, 'events'),
+          where('active', '==', false),
+          orderBy('date', 'desc')
         )
-      )
-      setPastEventsWithCounts(events.map((e, i) => ({ ...e, checkinCount: counts[i] })))
+        const snap = await getDocs(q)
+        const events: Event[] = snap.docs.map(d => {
+          const data = d.data()
+          return {
+            id: d.id,
+            name: data.name,
+            date: data.date.toDate(),
+            location: data.location,
+            radius: data.radius,
+            active: data.active,
+            createdAt: data.createdAt.toDate(),
+            closedAt: data.closedAt?.toDate() ?? null,
+          }
+        })
+
+        // Fetch check-in counts in parallel
+        const counts = await Promise.all(
+          events.map(e =>
+            getDocs(query(collection(db, 'checkins'), where('eventId', '==', e.id)))
+              .then(s => s.size)
+              .catch(() => 0)
+          )
+        )
+        setPastEventsWithCounts(events.map((e, i) => ({ ...e, checkinCount: counts[i] })))
+      } catch {
+        // network/permission error — silently show no past events
+      }
     }
     fetchPast()
   }, [event]) // refetch when active event changes
