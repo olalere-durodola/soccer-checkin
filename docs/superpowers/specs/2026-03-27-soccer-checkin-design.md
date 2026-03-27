@@ -181,13 +181,11 @@ match /events/{eventId} {
 }
 
 // checkins: unauthenticated users can create (player check-in)
-// admins can read, update, delete
+// admins can only read — no update or delete allowed
 // Note: allow create if !auth is intentional — players are public users.
-// Admin cannot create check-ins on behalf of players in v1.
 match /checkins/{checkinId} {
   allow create: if request.auth == null;
   allow read: if isAdmin();
-  allow update, delete: if isAdmin();
 }
 ```
 
@@ -228,6 +226,7 @@ match /checkins/{checkinId} {
 - No player login required
 - Multiple admin accounts supported — any Firebase Auth user with an admin record can log in
 - All admins share the same permissions (no roles/hierarchy in v1)
+- Admins can only read check-ins — no editing or deleting check-ins is permitted
 - Geofence radius: default 15m, min 10m, max 500m
 - GPS accuracy must be ≤ 50m to proceed (best-effort)
 - Close Event requires confirmation prompt
