@@ -48,6 +48,14 @@ events/{eventId}
   closedAt: timestamp | null
 ```
 
+### `admins` collection
+```
+admins/{email}
+  email: string  // document ID is the admin's email address
+  createdAt: timestamp
+```
+Used to allowlist admin accounts. Any Firebase Auth user whose email exists in this collection is treated as an admin.
+
 ### `checkins` collection
 ```
 checkins/{checkinId}
@@ -153,22 +161,33 @@ If two players share the same first and last name, only the first to check in wi
 ## Firestore Security Rules
 
 ```javascript
-// events: admin can read/write; public can read active events only
-match /events/{eventId} {
-  allow read: if resource.data.active == true || request.auth != null;
-  allow write: if request.auth != null;
+// Helper: check if the authenticated user is an allowlisted admin
+function isAdmin() {
+  return request.auth != null &&
+    exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
 }
 
-// checkins: unauthenticated users can create (player check-in only)
-// admin can read, update, delete
+// admins collection: only admins can read/write
+match /admins/{email} {
+  allow read, write: if isAdmin();
+}
+
+// events: admins can read/write; public can read active events only
+// Note: filtered query (where active == true) works because Firestore
+// evaluates rules per document on the filtered result set.
+match /events/{eventId} {
+  allow read: if resource.data.active == true || isAdmin();
+  allow write: if isAdmin();
+}
+
+// checkins: unauthenticated users can create (player check-in)
+// admins can read, update, delete
 // Note: allow create if !auth is intentional — players are public users.
 // Admin cannot create check-ins on behalf of players in v1.
-// Note: the events read rule works with filtered queries (where active == true)
-// because Firestore evaluates rules per document on the filtered result set.
 match /checkins/{checkinId} {
   allow create: if request.auth == null;
-  allow read: if request.auth != null;
-  allow update, delete: if request.auth != null;
+  allow read: if isAdmin();
+  allow update, delete: if isAdmin();
 }
 ```
 
@@ -207,7 +226,8 @@ match /checkins/{checkinId} {
 - localStorage `eventId` must match current active event to trigger confirmation screen
 - localStorage only updated after confirmed Firestore write
 - No player login required
-- Admin is the only authenticated user role
+- Multiple admin accounts supported — any Firebase Auth user with an admin record can log in
+- All admins share the same permissions (no roles/hierarchy in v1)
 - Geofence radius: default 15m, min 10m, max 500m
 - GPS accuracy must be ≤ 50m to proceed (best-effort)
 - Close Event requires confirmation prompt
@@ -223,6 +243,7 @@ match /checkins/{checkinId} {
 - **localStorage bypass:** Clearing browser data allows resubmission. Accepted for a trusted team.
 - **No rate limiting:** A device could spam check-ins with different names. Firestore rules cannot natively rate-limit. Accepted for v1.
 - **Admin cannot manually add check-ins:** No override flow exists for missed check-ins. Out of scope for v1.
+- **Admin management UI:** Adding/removing admins requires direct Firestore edits in v1. No admin management panel.
 
 ---
 
@@ -230,7 +251,6 @@ match /checkins/{checkinId} {
 
 - Player accounts or logins
 - Push notifications
-- Multiple admin accounts
 - Offline player check-in
 - Server-side geofence validation
 - Rate limiting on check-in writes
