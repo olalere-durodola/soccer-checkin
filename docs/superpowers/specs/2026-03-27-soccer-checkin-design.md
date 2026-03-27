@@ -133,6 +133,14 @@ If two players share the same first and last name, only the first to check in wi
 - Clicking a past event shows its full check-in list (read-only, sorted by arrival time)
 - No pagination in v1 (accepted for a soccer team season volume)
 
+### Export Check-In List
+- Available on both active and past events
+- Admin can export the check-in list as:
+  - **CSV** — columns: #, First Name, Last Name, Time
+  - **PDF** — formatted table with event name, date, and check-in list
+- Export is generated client-side (no server required)
+- CSV via browser download, PDF via print-friendly layout or a library (e.g. jsPDF)
+
 ### Close Event
 - Admin clicks "Close Event"
 - Confirmation prompt shown: "Are you sure you want to close this event? Players will no longer be able to check in."
@@ -220,7 +228,6 @@ match /checkins/{checkinId} {
 
 ## Out of Scope (v1)
 
-- CSV/PDF export of check-in lists
 - Player accounts or logins
 - Push notifications
 - Multiple admin accounts
