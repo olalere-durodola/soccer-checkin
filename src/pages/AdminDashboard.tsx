@@ -14,7 +14,7 @@ export function AdminDashboard() {
   const { logout } = useAuth()
   const { event, status } = useActiveEvent()
   const { checkins, connectionLost } = useCheckins(event?.id ?? null)
-  const [pastEvents, setPastEvents] = useState<Event[]>([])
+  const [pastEventsWithCounts, setPastEventsWithCounts] = useState<(Event & { checkinCount: number })[]>([])
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [closingError, setClosingError] = useState('')
   const navigate = useNavigate()
@@ -24,10 +24,10 @@ export function AdminDashboard() {
       const q = query(
         collection(db, 'events'),
         where('active', '==', false),
-        orderBy('closedAt', 'desc')
+        orderBy('date', 'desc')
       )
       const snap = await getDocs(q)
-      setPastEvents(snap.docs.map(d => {
+      const events: Event[] = snap.docs.map(d => {
         const data = d.data()
         return {
           id: d.id,
@@ -39,7 +39,15 @@ export function AdminDashboard() {
           createdAt: data.createdAt.toDate(),
           closedAt: data.closedAt?.toDate() ?? null,
         }
-      }))
+      })
+
+      // Fetch check-in counts in parallel
+      const counts = await Promise.all(
+        events.map(e =>
+          getDocs(query(collection(db, 'checkins'), where('eventId', '==', e.id))).then(s => s.size)
+        )
+      )
+      setPastEventsWithCounts(events.map((e, i) => ({ ...e, checkinCount: counts[i] })))
     }
     fetchPast()
   }, [event]) // refetch when active event changes
@@ -117,7 +125,7 @@ export function AdminDashboard() {
       {status === 'no-event' && <p style={{ marginBottom: 32, color: '#666' }}>No active event. Create one to get started.</p>}
 
       {/* Past Events */}
-      {pastEvents.length > 0 && (
+      {pastEventsWithCounts.length > 0 && (
         <section>
           <h2 style={{ marginBottom: 16 }}>Past Events</h2>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -125,16 +133,18 @@ export function AdminDashboard() {
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
                 <th style={{ textAlign: 'left', padding: '8px 4px' }}>Event</th>
                 <th style={{ textAlign: 'left', padding: '8px 4px' }}>Date</th>
+                <th style={{ textAlign: 'left', padding: '8px 4px' }}>Check-ins</th>
                 <th style={{ textAlign: 'left', padding: '8px 4px' }}>Closed</th>
               </tr>
             </thead>
             <tbody>
-              {pastEvents.map(e => (
+              {pastEventsWithCounts.map(e => (
                 <tr key={e.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '8px 4px' }}>
                     <Link to={`/admin/events/${e.id}`}>{e.name}</Link>
                   </td>
                   <td style={{ padding: '8px 4px' }}>{e.date.toLocaleDateString()}</td>
+                  <td style={{ padding: '8px 4px' }}>{e.checkinCount}</td>
                   <td style={{ padding: '8px 4px' }}>{e.closedAt?.toLocaleString() ?? '—'}</td>
                 </tr>
               ))}

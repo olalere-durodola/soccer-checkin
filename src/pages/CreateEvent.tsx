@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Circle, useMapEvents } from 'react-leaflet'
-import { collection, query, where, getDocs, doc, writeBatch, serverTimestamp } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, writeBatch, serverTimestamp, QuerySnapshot, DocumentData } from 'firebase/firestore'
 import { db } from '../firebase'
+import { ConfirmModal } from '../components/ConfirmModal'
 
 interface LatLng { lat: number; lng: number }
 
@@ -18,6 +19,8 @@ export function CreateEvent() {
   const [radius, setRadius] = useState(15)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [activeSnap, setActiveSnap] = useState<QuerySnapshot<DocumentData> | null>(null)
   const navigate = useNavigate()
 
   const handleActivate = async (e: React.FormEvent) => {
@@ -27,30 +30,37 @@ export function CreateEvent() {
     setError('')
     setLoading(true)
 
+    // Check for existing active event
+    let snap: QuerySnapshot<DocumentData>
     try {
-      // Check for existing active event
-      const activeQ = query(collection(db, 'events'), where('active', '==', true))
-      let activeSnap
-      try {
-        activeSnap = await getDocs(activeQ)
-      } catch {
-        setError('Could not check for active events, please try again')
-        setLoading(false)
-        return
-      }
+      snap = await getDocs(query(collection(db, 'events'), where('active', '==', true)))
+    } catch {
+      setError('Could not check for active events, please try again')
+      setLoading(false)
+      return
+    }
 
+    if (!snap.empty) {
+      // Show confirm modal before proceeding
+      setActiveSnap(snap)
+      setShowConfirm(true)
+      setLoading(false)
+      return
+    }
+
+    await activateEvent(null)
+  }
+
+  const activateEvent = async (existingSnap: QuerySnapshot<DocumentData> | null) => {
+    setLoading(true)
+    setShowConfirm(false)
+    try {
       const batch = writeBatch(db)
-
-      // Deactivate existing active event if any
-      if (!activeSnap.empty) {
-        const confirmed = window.confirm('This will close the current active event. Continue?')
-        if (!confirmed) { setLoading(false); return }
-        activeSnap.docs.forEach(d => {
+      if (existingSnap) {
+        existingSnap.docs.forEach(d => {
           batch.update(doc(db, 'events', d.id), { active: false, closedAt: serverTimestamp() })
         })
       }
-
-      // Create new event
       const newEventRef = doc(collection(db, 'events'))
       batch.set(newEventRef, {
         name: name.trim(),
@@ -61,7 +71,6 @@ export function CreateEvent() {
         createdAt: serverTimestamp(),
         closedAt: null,
       })
-
       await batch.commit()
       navigate('/admin')
     } catch {
@@ -93,10 +102,7 @@ export function CreateEvent() {
 
         <p style={{ marginBottom: 8, color: '#666' }}>Click the map to pin the field location</p>
         <div style={{ height: 350, marginBottom: 16, border: '1px solid #e5e7eb', borderRadius: 4 }}>
-          <MapContainer
-            center={[20, 0]} zoom={2}
-            style={{ height: '100%', width: '100%' }}
-          >
+          <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <LocationPicker location={location} onPick={setLocation} />
             {location && <Circle center={[location.lat, location.lng]} radius={radius} />}
@@ -114,6 +120,14 @@ export function CreateEvent() {
           </button>
         </div>
       </form>
+
+      {showConfirm && (
+        <ConfirmModal
+          message="This will close the current active event. Continue?"
+          onConfirm={() => activateEvent(activeSnap)}
+          onCancel={() => { setShowConfirm(false); setActiveSnap(null) }}
+        />
+      )}
     </div>
   )
 }

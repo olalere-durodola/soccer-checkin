@@ -138,8 +138,7 @@ export function CheckIn() {
     return (
       <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
         <h1 style={{ color: 'green', marginBottom: 16 }}>✓ You're checked in!</h1>
-        <p>{confirmed.firstName} {confirmed.lastName}</p>
-        <p style={{ color: '#666', marginTop: 8 }}>{confirmed.time}</p>
+        <p>{confirmed.firstName} {confirmed.lastName} at {confirmed.time}</p>
       </div>
     )
   }
