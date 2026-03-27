@@ -18,7 +18,7 @@ service cloud.firestore {
 
     match /checkins/{checkinId} {
       allow create: if request.auth == null;
-      allow read: if isAdmin();
+      allow read: if isAdmin() || request.auth == null;
     }
   }
 }
