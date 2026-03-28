@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapContainer, TileLayer, Circle, useMapEvents } from 'react-leaflet'
-import { collection, query, where, getDocs, doc, writeBatch, serverTimestamp, QuerySnapshot, DocumentData } from 'firebase/firestore'
+import { MapContainer, TileLayer, Circle, useMapEvents, useMap } from 'react-leaflet'
+import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
-import { ConfirmModal } from '../components/ConfirmModal'
 
 interface LatLng { lat: number; lng: number }
 
 function LocationPicker({ onPick }: { onPick: (ll: LatLng) => void }) {
   useMapEvents({ click: e => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }) })
+  return null
+}
+
+function MapFlyTo({ center }: { center: LatLng | null }) {
+  const map = useMap()
+  if (center) map.flyTo([center.lat, center.lng], 18)
   return null
 }
 
@@ -19,9 +24,35 @@ export function CreateEvent() {
   const [radius, setRadius] = useState(15)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [activeSnap, setActiveSnap] = useState<QuerySnapshot<DocumentData> | null>(null)
+  const [address, setAddress] = useState('')
+  const [addressError, setAddressError] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [flyTo, setFlyTo] = useState<LatLng | null>(null)
   const navigate = useNavigate()
+
+  const handleAddressSearch = async () => {
+    if (!address.trim()) return
+    setAddressError('')
+    setSearchLoading(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      const results = await res.json()
+      if (!results.length) {
+        setAddressError('Address not found, try a more specific search')
+      } else {
+        const ll: LatLng = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) }
+        setLocation(ll)
+        setFlyTo(ll)
+      }
+    } catch {
+      setAddressError('Could not search address, please try again')
+    } finally {
+      setSearchLoading(false)
+    }
+  }
 
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,42 +60,12 @@ export function CreateEvent() {
     if (!name.trim()) { setError('Please enter an event name'); return }
     setError('')
     setLoading(true)
-
-    // Check for existing active event
-    let snap: QuerySnapshot<DocumentData>
-    try {
-      snap = await getDocs(query(collection(db, 'events'), where('active', '==', true)))
-    } catch {
-      setError('Could not check for active events, please try again')
-      setLoading(false)
-      return
-    }
-
-    if (!snap.empty) {
-      // Show confirm modal before proceeding
-      setActiveSnap(snap)
-      setShowConfirm(true)
-      setLoading(false)
-      return
-    }
-
-    await activateEvent(null)
-  }
-
-  const activateEvent = async (existingSnap: QuerySnapshot<DocumentData> | null) => {
-    setLoading(true)
-    setShowConfirm(false)
     try {
       const batch = writeBatch(db)
-      if (existingSnap) {
-        existingSnap.docs.forEach(d => {
-          batch.update(doc(db, 'events', d.id), { active: false, closedAt: serverTimestamp() })
-        })
-      }
       const newEventRef = doc(collection(db, 'events'))
       batch.set(newEventRef, {
         name: name.trim(),
-        date: new Date(date),
+        date: (() => { const [y, m, d] = date.split('-').map(Number); return new Date(y, m - 1, d) })(),
         location,
         radius,
         active: true,
@@ -100,11 +101,30 @@ export function CreateEvent() {
             style={{ display: 'block', width: '100%', marginTop: 4 }} />
         </div>
 
-        <p style={{ marginBottom: 8, color: '#666' }}>Click the map to pin the field location</p>
+        <div style={{ marginBottom: 12 }}>
+          <label>Search Address</label>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <input
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddressSearch())}
+              placeholder="e.g. Central Park, New York"
+              style={{ flex: 1, padding: 8 }}
+            />
+            <button type="button" onClick={handleAddressSearch} disabled={searchLoading}
+              style={{ padding: '8px 16px', background: '#6b7280', color: '#fff', border: 'none', borderRadius: 4 }}>
+              {searchLoading ? '...' : 'Search'}
+            </button>
+          </div>
+          {addressError && <p style={{ color: 'red', marginTop: 4, fontSize: 14 }}>{addressError}</p>}
+        </div>
+
+        <p style={{ marginBottom: 8, color: '#666' }}>Or click the map to pin the field location</p>
         <div style={{ height: 350, marginBottom: 16, border: '1px solid #e5e7eb', borderRadius: 4 }}>
           <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <LocationPicker onPick={setLocation} />
+            <LocationPicker onPick={ll => { setLocation(ll); setFlyTo(null) }} />
+            <MapFlyTo center={flyTo} />
             {location && <Circle center={[location.lat, location.lng]} radius={radius} />}
           </MapContainer>
         </div>
@@ -121,13 +141,6 @@ export function CreateEvent() {
         </div>
       </form>
 
-      {showConfirm && (
-        <ConfirmModal
-          message="This will close the current active event. Continue?"
-          onConfirm={() => activateEvent(activeSnap)}
-          onCancel={() => { setShowConfirm(false); setActiveSnap(null) }}
-        />
-      )}
     </div>
   )
 }

@@ -8,7 +8,7 @@ export function ConfirmModal({ message, onConfirm, onCancel }: Props) {
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000
     }}>
       <div style={{ background: '#fff', padding: 24, borderRadius: 8, maxWidth: 360, width: '90%' }}>
         <p style={{ marginBottom: 24 }}>{message}</p>

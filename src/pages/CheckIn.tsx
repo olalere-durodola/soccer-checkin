@@ -4,6 +4,7 @@ import { db } from '../firebase'
 import { useActiveEvent } from '../hooks/useActiveEvent'
 import { validateName, buildFullName } from '../utils/validation'
 import { isWithinRadius } from '../utils/geo'
+import type { Event } from '../types'
 
 const LOCAL_KEY = 'checkin_state'
 
@@ -16,37 +17,76 @@ interface StoredCheckin {
 }
 
 export function CheckIn() {
-  const { event, status } = useActiveEvent()
+  const { events, status } = useActiveEvent()
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmed, setConfirmed] = useState<StoredCheckin | null>(null)
 
+  // Background location state
+  const [locationReady, setLocationReady] = useState(false)
+  const [locationDenied, setLocationDenied] = useState(false)
+  const coordsRef = useRef<GeolocationCoordinates | null>(null)
+  const watchIdRef = useRef<number | null>(null)
   const mountedRef = useRef(true)
+
   useEffect(() => {
     return () => { mountedRef.current = false }
   }, [])
 
-  // Check localStorage on mount / when active event changes
+  // Auto-select if only one event; clear selection if events change
   useEffect(() => {
-    if (!event) return
+    if (events.length === 1) setSelectedEvent(events[0])
+    else setSelectedEvent(null)
+  }, [events.map(e => e.id).join(',')])
+
+  // Check localStorage when selected event is known
+  useEffect(() => {
+    if (!selectedEvent) return
     try {
       const stored = localStorage.getItem(LOCAL_KEY)
       if (stored) {
         const parsed: StoredCheckin = JSON.parse(stored)
-        if (parsed.eventId === event.id) {
+        if (parsed.eventId === selectedEvent.id) {
           setConfirmed(parsed)
         }
       }
     } catch {
       // ignore corrupt localStorage
     }
-  }, [event?.id])
+  }, [selectedEvent?.id])
+
+  // Start watching location as soon as the form is visible
+  useEffect(() => {
+    if (!selectedEvent) return
+    if (!navigator.geolocation) return
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        coordsRef.current = pos.coords
+        setLocationReady(true)
+      },
+      (err) => {
+        if (err.code === GeolocationPositionError.PERMISSION_DENIED) {
+          setLocationDenied(true)
+        }
+      },
+      { enableHighAccuracy: false, maximumAge: 30000, timeout: 30000 }
+    )
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
+      }
+    }
+  }, [selectedEvent?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!event) return
+    if (!selectedEvent) return
     if (!validateName(firstName) || !validateName(lastName)) {
       setError('Please enter a valid first and last name (2–50 characters)')
       return
@@ -54,35 +94,20 @@ export function CheckIn() {
     setError('')
     setLoading(true)
 
-    // 1. Get GPS
-    let coords: GeolocationCoordinates
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
-      )
-      coords = pos.coords
-    } catch (err: unknown) {
-      if (!mountedRef.current) return
-      const geoErr = err as GeolocationPositionError
-      if (geoErr.code === GeolocationPositionError.PERMISSION_DENIED) {
-        setError('Please allow location access to check in')
+    // 1. Get coords (already acquired in background)
+    const coords = coordsRef.current
+    if (!coords) {
+      if (locationDenied) {
+        setError('Location access was denied — please allow location in your browser settings and try again')
       } else {
-        setError('Could not get your location, please try again')
+        setError('Still getting your location, please wait a moment and try again')
       }
       setLoading(false)
       return
     }
 
-    // 2. Check GPS accuracy
-    if (!mountedRef.current) return
-    if (coords.accuracy > 50) {
-      setError('Your GPS signal is too weak, please try again outside or near a window')
-      setLoading(false)
-      return
-    }
-
-    // 3. Check geofence
-    if (!isWithinRadius(event.location.lat, event.location.lng, coords.latitude, coords.longitude, event.radius)) {
+    // 2. Check geofence
+    if (!isWithinRadius(selectedEvent.location.lat, selectedEvent.location.lng, coords.latitude, coords.longitude, selectedEvent.radius)) {
       setError('You are not close enough to the field')
       setLoading(false)
       return
@@ -91,12 +116,11 @@ export function CheckIn() {
     // 4. Check duplicate
     const fullName = buildFullName(firstName, lastName)
     try {
-      const dupQuery = query(
+      const dupSnap = await getDocs(query(
         collection(db, 'checkins'),
-        where('eventId', '==', event.id),
+        where('eventId', '==', selectedEvent.id),
         where('fullName', '==', fullName)
-      )
-      const dupSnap = await getDocs(dupQuery)
+      ))
       if (!dupSnap.empty) {
         setError('You have already checked in')
         setLoading(false)
@@ -112,7 +136,7 @@ export function CheckIn() {
     // 5. Write check-in
     try {
       await addDoc(collection(db, 'checkins'), {
-        eventId: event.id,
+        eventId: selectedEvent.id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         fullName,
@@ -129,7 +153,7 @@ export function CheckIn() {
     // 6. Update localStorage and show confirmation
     const time = new Date().toLocaleTimeString()
     const stored: StoredCheckin = {
-      eventId: event.id,
+      eventId: selectedEvent.id,
       fullName,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -153,7 +177,7 @@ export function CheckIn() {
     )
   }
 
-  if (status === 'no-event' || !event) {
+  if (status === 'no-event' || events.length === 0) {
     return (
       <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
         <p>No active event right now</p>
@@ -161,10 +185,46 @@ export function CheckIn() {
     )
   }
 
+  // Multiple events — show picker first
+  if (events.length > 1 && !selectedEvent) {
+    return (
+      <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
+        <h1 style={{ marginBottom: 24 }}>Select Your Event</h1>
+        {events.map(ev => (
+          <button
+            key={ev.id}
+            onClick={() => setSelectedEvent(ev)}
+            style={{
+              display: 'block', width: '100%', padding: 16, marginBottom: 12,
+              textAlign: 'left', background: '#fff', border: '1px solid #e5e7eb',
+              borderRadius: 8, cursor: 'pointer'
+            }}
+          >
+            <strong>{ev.name}</strong>
+            <span style={{ display: 'block', color: '#666', fontSize: 14, marginTop: 4 }}>
+              {ev.date.toLocaleDateString()}
+            </span>
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  if (!selectedEvent) return null
+
   return (
     <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
-      <h1 style={{ marginBottom: 8 }}>{event.name}</h1>
-      <p style={{ color: '#666', marginBottom: 24 }}>{event.date.toLocaleDateString()}</p>
+      <h1 style={{ marginBottom: 8 }}>{selectedEvent.name}</h1>
+      <p style={{ color: '#666', marginBottom: 4 }}>{selectedEvent.date.toLocaleDateString()}</p>
+      <p style={{ fontSize: 13, marginBottom: 20, color: locationDenied ? '#dc2626' : locationReady ? '#059669' : '#f59e0b' }}>
+        {locationDenied ? '⚠ Location access denied — check browser settings' : locationReady ? '✓ Location ready' : '⟳ Getting your location...'}
+      </p>
+      {events.length > 1 && (
+        <button onClick={() => { setSelectedEvent(null); setError('') }}
+          style={{ marginBottom: 16, background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0 }}>
+          ← Back to events
+        </button>
+      )}
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 16 }}>
           <label>First Name</label>

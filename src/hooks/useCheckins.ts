@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Checkin } from '../types'
 
@@ -20,8 +20,7 @@ export function useCheckins(eventId: string | null): CheckinsState {
 
     const q = query(
       collection(db, 'checkins'),
-      where('eventId', '==', eventId),
-      orderBy('timestamp', 'asc')
+      where('eventId', '==', eventId)
     )
 
     const unsub = onSnapshot(
@@ -38,7 +37,7 @@ export function useCheckins(eventId: string | null): CheckinsState {
             timestamp: data.timestamp?.toDate() ?? new Date(),
             coords: data.coords,
           }
-        })
+        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
         setState({ checkins, loading: false, connectionLost: false })
       },
       () => setState(prev => ({ ...prev, loading: false, connectionLost: true }))

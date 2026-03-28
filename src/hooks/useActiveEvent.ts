@@ -1,30 +1,29 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, onSnapshot, limit } from 'firebase/firestore'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Event } from '../types'
 
 type Status = 'loading' | 'no-event' | 'loaded' | 'error'
 
-interface ActiveEventState {
-  event: Event | null
+interface ActiveEventsState {
+  events: Event[]
   status: Status
 }
 
-export function useActiveEvent(): ActiveEventState {
-  const [state, setState] = useState<ActiveEventState>({ event: null, status: 'loading' })
+export function useActiveEvent(): ActiveEventsState {
+  const [state, setState] = useState<ActiveEventsState>({ events: [], status: 'loading' })
 
   useEffect(() => {
-    const q = query(collection(db, 'events'), where('active', '==', true), limit(1))
+    const q = query(collection(db, 'events'), where('active', '==', true))
     const unsub = onSnapshot(
       q,
       (snap) => {
         if (snap.empty) {
-          setState({ event: null, status: 'no-event' })
+          setState({ events: [], status: 'no-event' })
         } else {
-          const d = snap.docs[0]
-          const data = d.data()
-          setState({
-            event: {
+          const events: Event[] = snap.docs.map(d => {
+            const data = d.data()
+            return {
               id: d.id,
               name: data.name,
               date: data.date.toDate(),
@@ -33,12 +32,12 @@ export function useActiveEvent(): ActiveEventState {
               active: data.active,
               createdAt: data.createdAt.toDate(),
               closedAt: data.closedAt?.toDate() ?? null,
-            },
-            status: 'loaded',
+            }
           })
+          setState({ events, status: 'loaded' })
         }
       },
-      () => setState({ event: null, status: 'error' })
+      () => setState({ events: [], status: 'error' })
     )
     return unsub
   }, [])
