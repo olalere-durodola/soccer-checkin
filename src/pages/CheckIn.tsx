@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, where, getDocs, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useActiveEvent } from '../hooks/useActiveEvent'
 import { validateName, buildFullName } from '../utils/validation'
@@ -14,6 +14,7 @@ interface StoredCheckin {
   firstName: string
   lastName: string
   time: string
+  team?: 'yellow' | 'orange' | null
 }
 
 export function CheckIn() {
@@ -133,6 +134,24 @@ export function CheckIn() {
       return
     }
 
+    // 4b. Determine team assignment
+    let team: 'yellow' | 'orange' | null = null
+    try {
+      const countSnap = await getCountFromServer(query(
+        collection(db, 'checkins'),
+        where('eventId', '==', selectedEvent.id)
+      ))
+      const position = countSnap.data().count + 1
+      if (position <= 20) {
+        team = position % 2 !== 0 ? 'orange' : 'yellow'
+      }
+    } catch {
+      if (!mountedRef.current) return
+      setError('Could not verify your check-in status, please try again')
+      setLoading(false)
+      return
+    }
+
     // 5. Write check-in
     try {
       await addDoc(collection(db, 'checkins'), {
@@ -142,6 +161,7 @@ export function CheckIn() {
         fullName,
         timestamp: serverTimestamp(),
         coords: { lat: coords.latitude, lng: coords.longitude },
+        team,
       })
     } catch {
       if (!mountedRef.current) return
@@ -158,6 +178,7 @@ export function CheckIn() {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       time,
+      team,
     }
     localStorage.setItem(LOCAL_KEY, JSON.stringify(stored))
     if (!mountedRef.current) return
@@ -173,6 +194,12 @@ export function CheckIn() {
       <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
         <h1 style={{ color: 'green', marginBottom: 16 }}>✓ You're checked in!</h1>
         <p>{confirmed.firstName} {confirmed.lastName} at {confirmed.time}</p>
+        {confirmed.team === 'orange' && (
+          <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600 }}>🟠 You're on the Orange team</p>
+        )}
+        {confirmed.team === 'yellow' && (
+          <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600 }}>🟡 You're on the Yellow team</p>
+        )}
       </div>
     )
   }
