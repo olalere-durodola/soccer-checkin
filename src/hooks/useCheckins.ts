@@ -36,6 +36,7 @@ export function useCheckins(eventId: string | null): CheckinsState {
             fullName: data.fullName,
             timestamp: data.timestamp?.toDate() ?? new Date(),
             coords: data.coords,
+            team: data.team ?? null,
           }
         }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
         setState({ checkins, loading: false, connectionLost: false })
