@@ -47,29 +47,63 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
       {closeError && <p style={{ color: 'red', marginBottom: 12 }}>{closeError}</p>}
 
       <p style={{ marginBottom: 12, color: '#666' }}>{checkins.length} checked in</p>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-            <th style={{ textAlign: 'left', padding: '8px 4px', width: 40 }}>#</th>
-            <th style={{ textAlign: 'left', padding: '8px 4px' }}>First Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 4px' }}>Last Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 4px' }}>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {checkins.map((c, i) => (
-            <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-              <td style={{ padding: '8px 4px' }}>{i + 1}</td>
-              <td style={{ padding: '8px 4px' }}>{c.firstName}</td>
-              <td style={{ padding: '8px 4px' }}>{c.lastName}</td>
-              <td style={{ padding: '8px 4px' }}>{c.timestamp.toLocaleTimeString()}</td>
-            </tr>
-          ))}
-          {checkins.length === 0 && (
-            <tr><td colSpan={4} style={{ padding: 16, color: '#999', textAlign: 'center' }}>No check-ins yet</td></tr>
+
+      {checkins.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#999', padding: 16 }}>No check-ins yet</div>
+      ) : (
+        <>
+          {/* Team panels — first 20 check-ins */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: checkins.length > 20 ? 16 : 0 }}>
+            {/* Yellow team */}
+            {checkins.some((c, i) => i < 20 && c.team === 'yellow') && (
+              <div style={{ flex: 1, background: '#fef9c3', borderRadius: 6, padding: 12 }}>
+                <div style={{ fontWeight: 700, color: '#854d0e', marginBottom: 8 }}>
+                  🟡 Yellow ({checkins.filter(c => c.team === 'yellow').length})
+                </div>
+                {checkins
+                  .map((c, i) => ({ c, pos: i + 1 }))
+                  .filter(({ c }) => c.team === 'yellow')
+                  .map(({ c, pos }) => (
+                    <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
+                      {pos}. {c.firstName} {c.lastName} — {c.timestamp.toLocaleTimeString()}
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Orange team */}
+            {checkins.some((c, i) => i < 20 && c.team === 'orange') && (
+              <div style={{ flex: 1, background: '#fff7ed', borderRadius: 6, padding: 12 }}>
+                <div style={{ fontWeight: 700, color: '#9a3412', marginBottom: 8 }}>
+                  🟠 Orange ({checkins.filter(c => c.team === 'orange').length})
+                </div>
+                {checkins
+                  .map((c, i) => ({ c, pos: i + 1 }))
+                  .filter(({ c }) => c.team === 'orange')
+                  .map(({ c, pos }) => (
+                    <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
+                      {pos}. {c.firstName} {c.lastName} — {c.timestamp.toLocaleTimeString()}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* No-team list — positions 21+ */}
+          {checkins.length > 20 && (
+            <div>
+              <div style={{ fontWeight: 600, color: '#666', marginBottom: 8 }}>
+                No team assigned ({checkins.length - 20})
+              </div>
+              {checkins.slice(20).map((c, i) => (
+                <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
+                  {21 + i}. {c.firstName} {c.lastName} — {c.timestamp.toLocaleTimeString()}
+                </div>
+              ))}
+            </div>
           )}
-        </tbody>
-      </table>
+        </>
+      )}
 
       {showConfirm && (
         <ConfirmModal
