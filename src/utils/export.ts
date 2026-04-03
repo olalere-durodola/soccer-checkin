@@ -1,10 +1,11 @@
 import type { Checkin } from '../types'
 
 export function buildCsvContent(checkins: Checkin[]): string {
-  const header = '#,First Name,Last Name,Time'
+  const header = '#,First Name,Last Name,Team,Time'
   const rows = checkins.map((c, i) => {
     const time = c.timestamp.toLocaleTimeString()
-    return `${i + 1},${c.firstName},${c.lastName},${time}`
+    const team = c.team === 'yellow' ? 'Yellow' : c.team === 'orange' ? 'Orange' : ''
+    return `${i + 1},${c.firstName},${c.lastName},${team},${time}`
   })
   return [header, ...rows].join('\n')
 }
