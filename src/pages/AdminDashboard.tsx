@@ -58,7 +58,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
             {checkins.some((c, i) => i < 20 && c.team === 'yellow') && (
               <div style={{ flex: 1, background: '#fef9c3', borderRadius: 6, padding: 12 }}>
                 <div style={{ fontWeight: 700, color: '#854d0e', marginBottom: 8 }}>
-                  🟡 Yellow ({checkins.filter(c => c.team === 'yellow').length})
+                  🟡 Yellow ({checkins.slice(0, 20).filter(c => c.team === 'yellow').length})
                 </div>
                 {checkins.slice(0, 20)
                   .map((c, i) => ({ c, pos: i + 1 }))
@@ -75,7 +75,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
             {checkins.some((c, i) => i < 20 && c.team === 'orange') && (
               <div style={{ flex: 1, background: '#fff7ed', borderRadius: 6, padding: 12 }}>
                 <div style={{ fontWeight: 700, color: '#9a3412', marginBottom: 8 }}>
-                  🟠 Orange ({checkins.filter(c => c.team === 'orange').length})
+                  🟠 Orange ({checkins.slice(0, 20).filter(c => c.team === 'orange').length})
                 </div>
                 {checkins.slice(0, 20)
                   .map((c, i) => ({ c, pos: i + 1 }))
