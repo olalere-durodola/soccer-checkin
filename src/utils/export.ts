@@ -30,13 +30,22 @@ export function downloadPdf(checkins: Checkin[], eventName: string, eventDate: D
     doc.text(eventDate.toLocaleDateString(), 14, 28)
     let y = 42
     doc.setFontSize(10)
-    doc.text('#', 14, y); doc.text('First Name', 24, y); doc.text('Last Name', 74, y); doc.text('Time', 124, y)
+    doc.text('#', 14, y)
+    doc.text('First Name', 24, y)
+    doc.text('Last Name', 64, y)
+    doc.text('Team', 104, y)
+    doc.text('Time', 144, y)
     y += 4
     doc.line(14, y, 196, y)
     y += 6
     checkins.forEach((c, i) => {
       if (y > 270) { doc.addPage(); y = 20 }
-      doc.text(String(i + 1), 14, y); doc.text(c.firstName, 24, y); doc.text(c.lastName, 74, y); doc.text(c.timestamp.toLocaleTimeString(), 124, y)
+      const team = c.team === 'yellow' ? 'Yellow' : c.team === 'orange' ? 'Orange' : ''
+      doc.text(String(i + 1), 14, y)
+      doc.text(c.firstName, 24, y)
+      doc.text(c.lastName, 64, y)
+      doc.text(team, 104, y)
+      doc.text(c.timestamp.toLocaleTimeString(), 144, y)
       y += 8
     })
     doc.save(`${eventName}-checkins.pdf`)
