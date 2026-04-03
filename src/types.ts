@@ -17,6 +17,7 @@ export interface Checkin {
   fullName: string      // "firstname lastname" lowercased, for duplicate detection
   timestamp: Date
   coords: { lat: number; lng: number }
+  team?: 'yellow' | 'orange' | null
 }
 
 export interface Admin {
