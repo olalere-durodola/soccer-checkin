@@ -60,7 +60,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
                 <div style={{ fontWeight: 700, color: '#854d0e', marginBottom: 8 }}>
                   🟡 Yellow ({checkins.filter(c => c.team === 'yellow').length})
                 </div>
-                {checkins
+                {checkins.slice(0, 20)
                   .map((c, i) => ({ c, pos: i + 1 }))
                   .filter(({ c }) => c.team === 'yellow')
                   .map(({ c, pos }) => (
@@ -77,7 +77,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
                 <div style={{ fontWeight: 700, color: '#9a3412', marginBottom: 8 }}>
                   🟠 Orange ({checkins.filter(c => c.team === 'orange').length})
                 </div>
-                {checkins
+                {checkins.slice(0, 20)
                   .map((c, i) => ({ c, pos: i + 1 }))
                   .filter(({ c }) => c.team === 'orange')
                   .map(({ c, pos }) => (
