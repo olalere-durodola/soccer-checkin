@@ -43,18 +43,33 @@ export function CreateEvent() {
     return null
   }
 
-  // US Census geocoder — free, no key, excellent at exact US street addresses
-  const geocodeCensus = async (q: string): Promise<LatLng | null> => {
-    const res = await fetch(
-      `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(q)}&benchmark=Public_AR_Current&format=json`
-    )
-    const data = await res.json()
-    const match = data?.result?.addressMatches?.[0]
-    if (match?.coordinates) {
-      return { lat: match.coordinates.y, lng: match.coordinates.x }
-    }
-    return null
-  }
+  // US Census geocoder — free, no key, excellent at exact US street addresses.
+  // It sends no CORS header, so `fetch` is blocked in the browser; we load it
+  // via JSONP (a <script> tag) instead, which isn't subject to CORS.
+  const geocodeCensus = (q: string): Promise<LatLng | null> =>
+    new Promise((resolve) => {
+      const cb = `__censusCb_${Date.now()}`
+      const win = window as unknown as Record<string, unknown>
+      const script = document.createElement('script')
+      let settled = false
+      let timer = 0
+      const finish = (ll: LatLng | null) => {
+        if (settled) return
+        settled = true
+        delete win[cb]
+        script.remove()
+        clearTimeout(timer)
+        resolve(ll)
+      }
+      win[cb] = (data: { result?: { addressMatches?: Array<{ coordinates?: { x: number; y: number } }> } }) => {
+        const m = data?.result?.addressMatches?.[0]
+        finish(m?.coordinates ? { lat: m.coordinates.y, lng: m.coordinates.x } : null)
+      }
+      timer = window.setTimeout(() => finish(null), 8000)
+      script.onerror = () => finish(null)
+      script.src = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(q)}&benchmark=Public_AR_Current&format=jsonp&callback=${cb}`
+      document.body.appendChild(script)
+    })
 
   const handleAddressSearch = async () => {
     if (!address.trim()) return
