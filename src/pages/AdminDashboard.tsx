@@ -28,76 +28,67 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
     }
   }
 
+  const first20 = checkins.slice(0, 20).map((c, i) => ({ c, pos: i + 1 }))
+  const yellow = first20.filter(({ c }) => c.team === 'yellow')
+  const orange = first20.filter(({ c }) => c.team === 'orange')
+
   return (
-    <section style={{ marginBottom: 32, borderBottom: '1px solid #e5e7eb', paddingBottom: 32 }}>
+    <section style={{ marginBottom: 30, borderBottom: '1px solid var(--line)', paddingBottom: 26 }}>
       {connectionLost && <ConnectionBanner />}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="bar" style={{ marginBottom: 14 }}>
         <div>
-          <h2>{event.name}</h2>
-          <p style={{ color: '#666' }}>{event.date.toLocaleDateString()}</p>
+          <h2 style={{ fontSize: 24, textTransform: 'uppercase' }}>{event.name}</h2>
+          <p style={{ color: 'var(--muted)', fontWeight: 600 }}>{event.date.toLocaleDateString()}</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => downloadCsv(checkins, event.name)}>Export CSV</button>
-          <button onClick={() => downloadPdf(checkins, event.name, event.date)}>Export PDF</button>
-          <button onClick={() => setShowConfirm(true)} style={{ background: '#dc2626', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 4 }}>
-            Close Event
-          </button>
+        <div className="row-actions">
+          <button className="btn btn--outline" onClick={() => downloadCsv(checkins, event.name)}>Export CSV</button>
+          <button className="btn btn--outline" onClick={() => downloadPdf(checkins, event.name, event.date)}>Export PDF</button>
+          <button className="btn btn--danger" onClick={() => setShowConfirm(true)}>Close</button>
         </div>
       </div>
-      {closeError && <p style={{ color: 'red', marginBottom: 12 }}>{closeError}</p>}
+      {closeError && <p className="error-text">{closeError}</p>}
 
-      <p style={{ marginBottom: 12, color: '#666' }}>{checkins.length} checked in</p>
+      <div className="scoreboard">
+        <span className="count">{checkins.length}</span>
+        <span className="count-label">checked in</span>
+      </div>
 
       {checkins.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#999', padding: 16 }}>No check-ins yet</div>
+        <div className="card card-pad empty" style={{ marginTop: 14 }}>No check-ins yet — share the link or QR with players.</div>
       ) : (
         <>
-          {/* Team panels — first 20 check-ins */}
-          <div style={{ display: 'flex', gap: 16, marginBottom: checkins.length > 20 ? 16 : 0 }}>
-            {/* Yellow team */}
-            {checkins.some((c, i) => i < 20 && c.team === 'yellow') && (
-              <div style={{ flex: 1, background: '#fef9c3', borderRadius: 6, padding: 12 }}>
-                <div style={{ fontWeight: 700, color: '#854d0e', marginBottom: 8 }}>
-                  🟡 Yellow ({checkins.slice(0, 20).filter(c => c.team === 'yellow').length})
-                </div>
-                {checkins.slice(0, 20)
-                  .map((c, i) => ({ c, pos: i + 1 }))
-                  .filter(({ c }) => c.team === 'yellow')
-                  .map(({ c, pos }) => (
-                    <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
-                      {pos}. {c.firstName} {c.lastName} — {c.timestamp.toLocaleTimeString()}
-                    </div>
-                  ))}
-              </div>
-            )}
-
-            {/* Orange team */}
-            {checkins.some((c, i) => i < 20 && c.team === 'orange') && (
-              <div style={{ flex: 1, background: '#fff7ed', borderRadius: 6, padding: 12 }}>
-                <div style={{ fontWeight: 700, color: '#9a3412', marginBottom: 8 }}>
-                  🟠 Orange ({checkins.slice(0, 20).filter(c => c.team === 'orange').length})
-                </div>
-                {checkins.slice(0, 20)
-                  .map((c, i) => ({ c, pos: i + 1 }))
-                  .filter(({ c }) => c.team === 'orange')
-                  .map(({ c, pos }) => (
-                    <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
-                      {pos}. {c.firstName} {c.lastName} — {c.timestamp.toLocaleTimeString()}
-                    </div>
-                  ))}
-              </div>
-            )}
+          <div className="teams">
+            <div className="team-panel team-panel--yellow">
+              <div className="team-head">🟡 Yellow <span className="team-count">{yellow.length}</span></div>
+              {yellow.length === 0
+                ? <div className="player"><span className="nm" style={{ color: 'var(--faint)' }}>—</span></div>
+                : yellow.map(({ c, pos }) => (
+                  <div key={c.id} className="player">
+                    <span className="num">{pos}</span><span className="nm">{c.firstName} {c.lastName}</span>
+                    <span className="tm">{c.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                  </div>
+                ))}
+            </div>
+            <div className="team-panel team-panel--orange">
+              <div className="team-head">🟠 Orange <span className="team-count">{orange.length}</span></div>
+              {orange.length === 0
+                ? <div className="player"><span className="nm" style={{ color: 'var(--faint)' }}>—</span></div>
+                : orange.map(({ c, pos }) => (
+                  <div key={c.id} className="player">
+                    <span className="num">{pos}</span><span className="nm">{c.firstName} {c.lastName}</span>
+                    <span className="tm">{c.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                  </div>
+                ))}
+            </div>
           </div>
 
-          {/* No-team list — positions 21+ */}
           {checkins.length > 20 && (
-            <div>
-              <div style={{ fontWeight: 600, color: '#666', marginBottom: 8 }}>
-                No team assigned ({checkins.length - 20})
-              </div>
+            <div className="card card-pad" style={{ marginTop: 4 }}>
+              <div className="section-label">Waitlist — no team ({checkins.length - 20})</div>
               {checkins.slice(20).map((c, i) => (
-                <div key={c.id} style={{ fontSize: 13, marginBottom: 4 }}>
-                  {21 + i}. {c.firstName} {c.lastName} — {c.timestamp.toLocaleTimeString()}
+                <div key={c.id} className="player">
+                  <span className="num">{21 + i}</span><span className="nm">{c.firstName} {c.lastName}</span>
+                  <span className="tm">{c.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
               ))}
             </div>
@@ -107,7 +98,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
 
       {showConfirm && (
         <ConfirmModal
-          message="Are you sure you want to close this event? Players will no longer be able to check in."
+          message="Close this game? Players will no longer be able to check in."
           onConfirm={handleClose}
           onCancel={() => setShowConfirm(false)}
         />
@@ -161,16 +152,16 @@ export function AdminDashboard() {
   }, [events.length, refreshKey])
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1>Admin Dashboard</h1>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={() => navigate('/admin/create')}>New Event</button>
-          <button onClick={logout}>Log Out</button>
+    <div className="screen screen-wide">
+      <div className="bar">
+        <h1>Matchday</h1>
+        <div className="row-actions">
+          <button className="btn btn--primary" onClick={() => navigate('/admin/create')}>New Game</button>
+          <button className="btn btn--outline" onClick={logout}>Log Out</button>
         </div>
       </div>
 
-      {status === 'loading' && <p>Loading...</p>}
+      {status === 'loading' && <p className="empty">Loading…</p>}
       {status === 'loaded' && events.map(event => (
         <ActiveEventSection
           key={event.id}
@@ -178,33 +169,32 @@ export function AdminDashboard() {
           onClosed={() => setRefreshKey(k => k + 1)}
         />
       ))}
-      {status === 'no-event' && <p style={{ marginBottom: 32, color: '#666' }}>No active event. Create one to get started.</p>}
+      {status === 'no-event' && (
+        <div className="card card-pad empty" style={{ marginBottom: 28 }}>No active game. Create one to get started.</div>
+      )}
 
       {pastEventsWithCounts.length > 0 && (
         <section>
-          <h2 style={{ marginBottom: 16 }}>Past Events</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                <th style={{ textAlign: 'left', padding: '8px 4px' }}>Event</th>
-                <th style={{ textAlign: 'left', padding: '8px 4px' }}>Date</th>
-                <th style={{ textAlign: 'left', padding: '8px 4px' }}>Check-ins</th>
-                <th style={{ textAlign: 'left', padding: '8px 4px' }}>Closed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pastEventsWithCounts.map(e => (
-                <tr key={e.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '8px 4px' }}>
-                    <Link to={`/admin/events/${e.id}`}>{e.name}</Link>
-                  </td>
-                  <td style={{ padding: '8px 4px' }}>{e.date.toLocaleDateString()}</td>
-                  <td style={{ padding: '8px 4px' }}>{e.checkinCount}</td>
-                  <td style={{ padding: '8px 4px' }}>{e.closedAt?.toLocaleString() ?? '—'}</td>
+          <div className="section-label">Past games</div>
+          <div className="card" style={{ overflow: 'hidden' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Game</th><th>Date</th><th>Check-ins</th><th>Closed</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pastEventsWithCounts.map(e => (
+                  <tr key={e.id}>
+                    <td><Link to={`/admin/events/${e.id}`}>{e.name}</Link></td>
+                    <td>{e.date.toLocaleDateString()}</td>
+                    <td>{e.checkinCount}</td>
+                    <td>{e.closedAt?.toLocaleString() ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
     </div>

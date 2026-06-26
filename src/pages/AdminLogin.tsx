@@ -25,22 +25,21 @@ export function AdminLogin() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
-      <h1 style={{ marginBottom: 24 }}>Admin Login</h1>
+    <div className="screen" style={{ maxWidth: 400, marginTop: 60 }}>
+      <div className="kicker">Matchday</div>
+      <h1 style={{ fontSize: 34, textTransform: 'uppercase', margin: '4px 0 22px' }}>Admin Login</h1>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 16 }}>
-          <label>Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }} />
+        <div className="field">
+          <label className="label" htmlFor="email">Email</label>
+          <input id="email" className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }} />
+        <div className="field">
+          <label className="label" htmlFor="password">Password</label>
+          <input id="password" className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
         </div>
-        {error && <p style={{ color: 'red', marginBottom: 12 }}>{error}</p>}
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: 12 }}>
-          {loading ? 'Logging in...' : 'Log In'}
+        {error && <p className="error-text">{error}</p>}
+        <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
+          {loading ? 'Logging in…' : 'Log In'}
         </button>
       </form>
     </div>
