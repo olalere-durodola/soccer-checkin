@@ -3,7 +3,7 @@ export interface Event {
   name: string
   date: Date
   location: { lat: number; lng: number }
-  radius: number        // meters, default 15, min 10, max 500
+  radius: number        // meters, default 50, min 10, max 500
   active: boolean
   createdAt: Date
   closedAt: Date | null
