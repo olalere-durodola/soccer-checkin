@@ -30,20 +30,44 @@ export function CreateEvent() {
   const [flyTo, setFlyTo] = useState<LatLng | null>(null)
   const navigate = useNavigate()
 
+  // OpenStreetMap — good worldwide, but often missing exact residential house numbers
+  const geocodeNominatim = async (q: string): Promise<LatLng | null> => {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    )
+    const results = await res.json()
+    if (Array.isArray(results) && results.length) {
+      return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) }
+    }
+    return null
+  }
+
+  // US Census geocoder — free, no key, excellent at exact US street addresses
+  const geocodeCensus = async (q: string): Promise<LatLng | null> => {
+    const res = await fetch(
+      `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(q)}&benchmark=Public_AR_Current&format=json`
+    )
+    const data = await res.json()
+    const match = data?.result?.addressMatches?.[0]
+    if (match?.coordinates) {
+      return { lat: match.coordinates.y, lng: match.coordinates.x }
+    }
+    return null
+  }
+
   const handleAddressSearch = async () => {
     if (!address.trim()) return
     setAddressError('')
     setSearchLoading(true)
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
-        { headers: { 'Accept-Language': 'en' } }
-      )
-      const results = await res.json()
-      if (!results.length) {
-        setAddressError('Address not found, try a more specific search')
+      // Try OSM first (worldwide); fall back to the US Census geocoder for
+      // exact US street addresses OSM doesn't have.
+      let ll = await geocodeNominatim(address).catch(() => null)
+      if (!ll) ll = await geocodeCensus(address).catch(() => null)
+      if (!ll) {
+        setAddressError("Couldn't find that address. Try a nearby park or landmark, or just click the map to drop a pin.")
       } else {
-        const ll: LatLng = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) }
         setLocation(ll)
         setFlyTo(ll)
       }
