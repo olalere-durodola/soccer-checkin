@@ -129,23 +129,26 @@ a { color: inherit; }
 .checkin-screen { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
 .checkin-hero {
   position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #15B970, #0E9D5C);
+  background: #161C24; /* ink card */
   color: #fff; border-radius: var(--r-lg);
   padding: 22px 22px 24px; margin-bottom: 22px;
-  box-shadow: 0 12px 30px rgba(14, 157, 92, 0.28);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
-/* faint diagonal pitch stripes */
+/* faint diagonal pitch stripes (green, so the brand reads without competing) */
 .checkin-hero::before {
-  content: ""; position: absolute; inset: 0; opacity: .12; pointer-events: none;
-  background: repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 26px);
+  content: ""; position: absolute; inset: 0; opacity: .18; pointer-events: none;
+  background: repeating-linear-gradient(135deg, var(--primary) 0 2px, transparent 2px 26px);
 }
 .checkin-hero > * { position: relative; }
-.checkin-hero .kicker { color: rgba(255,255,255,.85); }
+.checkin-hero .kicker { color: rgba(255,255,255,.7); }
 .checkin-hero .event-name { color: #fff; margin-top: 2px; display: flex; align-items: center; gap: 10px; }
-.checkin-hero .event-date { color: rgba(255,255,255,.85); }
-.ball { font-size: 0.7em; }
-.checkin-hero .status { margin-top: 14px; background: rgba(255,255,255,.18); color: #fff; }
+.checkin-hero .event-date { color: rgba(255,255,255,.7); }
+.ball { width: 1em; height: 1em; flex-shrink: 0; }
+.checkin-hero .status { margin-top: 14px; background: rgba(255,255,255,.14); color: #fff; }
 .checkin-hero .status .dot { background: #fff; }
+.checkin-hero .status--ok .dot { background: #36D98A; }
+.checkin-hero .status--warn .dot { background: #FFC24D; }
+.checkin-hero .status--err .dot { background: #FF6B5E; }
 .field-hint { font-size: 13px; color: var(--muted); margin-top: 12px; text-align: center; }
 
 /* ── LIVE badge ─────────────────────────────────────────── */
