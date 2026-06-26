@@ -9,8 +9,10 @@ import type { Event } from '../types'
 const LOCAL_KEY = 'checkin_state'
 
 // Fixes less precise than this can't reliably verify the radius, so we keep
-// refining rather than deciding on them.
-const MAX_ACCURACY_M = 100
+// refining rather than deciding on them. Kept tight (50 m) so only genuine
+// phone GPS qualifies — coarse wifi/IP-based fixes (which a VPN can shift on
+// non-GPS devices) are rejected, blocking remote/spoofed check-ins.
+const MAX_ACCURACY_M = 50
 
 interface StoredCheckin {
   eventId: string
