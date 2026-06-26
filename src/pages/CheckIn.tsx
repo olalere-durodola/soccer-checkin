@@ -278,7 +278,20 @@ export function CheckIn() {
 
       <div className="checkin-hero">
         <div className="kicker">Check in</div>
-        <h1 className="event-name"><span className="ball">⚽</span>{selectedEvent.name}</h1>
+        <h1 className="event-name">
+          <svg className="ball" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="15" fill="#fff" stroke="#0E1116" strokeWidth="1.5" />
+            <polygon points="16,10 21.7,14.15 19.53,20.85 12.47,20.85 10.3,14.15" fill="#0E1116" />
+            <g stroke="#0E1116" strokeWidth="1.5">
+              <line x1="16" y1="10" x2="16" y2="3.5" />
+              <line x1="21.7" y1="14.15" x2="27.5" y2="11.5" />
+              <line x1="19.53" y1="20.85" x2="23.5" y2="26.5" />
+              <line x1="12.47" y1="20.85" x2="8.5" y2="26.5" />
+              <line x1="10.3" y1="14.15" x2="4.5" y2="11.5" />
+            </g>
+          </svg>
+          {selectedEvent.name}
+        </h1>
         <p className="event-date">{selectedEvent.date.toLocaleDateString()}</p>
         <span className={`status ${statusCls}`}><span className="dot" />{statusText}</span>
       </div>
