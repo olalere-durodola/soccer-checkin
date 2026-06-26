@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { collection, query, where, orderBy, getDocs, doc, writeBatch, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -9,6 +9,31 @@ import { ConfirmModal } from '../components/ConfirmModal'
 import { ConnectionBanner } from '../components/ConnectionBanner'
 import { downloadCsv, downloadPdf } from '../utils/export'
 import type { Event } from '../types'
+
+/** Animates the displayed number from its previous value to the new one. */
+function CountUp({ value }: { value: number }) {
+  const [display, setDisplay] = useState(value)
+  const fromRef = useRef(value)
+  useEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const from = fromRef.current
+    const to = value
+    if (reduce || from === to) { setDisplay(to); fromRef.current = to; return }
+    let raf = 0
+    let start = 0
+    const tick = (t: number) => {
+      if (!start) start = t
+      const p = Math.min(1, (t - start) / 500)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setDisplay(Math.round(from + (to - from) * eased))
+      if (p < 1) raf = requestAnimationFrame(tick)
+      else fromRef.current = to
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
+  return <>{display}</>
+}
 
 function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () => void }) {
   const { checkins, connectionLost } = useCheckins(event.id)
@@ -37,7 +62,8 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
       {connectionLost && <ConnectionBanner />}
       <div className="bar" style={{ marginBottom: 14 }}>
         <div>
-          <h2 style={{ fontSize: 24, textTransform: 'uppercase' }}>{event.name}</h2>
+          <span className="live"><span className="dot" />Live</span>
+          <h2 style={{ fontSize: 24, textTransform: 'uppercase', marginTop: 2 }}>{event.name}</h2>
           <p style={{ color: 'var(--muted)', fontWeight: 600 }}>{event.date.toLocaleDateString()}</p>
         </div>
         <div className="row-actions">
@@ -49,7 +75,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
       {closeError && <p className="error-text">{closeError}</p>}
 
       <div className="scoreboard">
-        <span className="count">{checkins.length}</span>
+        <span className="count"><CountUp value={checkins.length} /></span>
         <span className="count-label">checked in</span>
       </div>
 
@@ -61,7 +87,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
             <div className="team-panel team-panel--yellow">
               <div className="team-head">🟡 Yellow <span className="team-count">{yellow.length}</span></div>
               {yellow.length === 0
-                ? <div className="player"><span className="nm" style={{ color: 'var(--faint)' }}>—</span></div>
+                ? <div className="waiting"><span className="dot" />Waiting for players…</div>
                 : yellow.map(({ c, pos }) => (
                   <div key={c.id} className="player">
                     <span className="num">{pos}</span><span className="nm">{c.firstName} {c.lastName}</span>
@@ -72,7 +98,7 @@ function ActiveEventSection({ event, onClosed }: { event: Event; onClosed: () =>
             <div className="team-panel team-panel--orange">
               <div className="team-head">🟠 Orange <span className="team-count">{orange.length}</span></div>
               {orange.length === 0
-                ? <div className="player"><span className="nm" style={{ color: 'var(--faint)' }}>—</span></div>
+                ? <div className="waiting"><span className="dot" />Waiting for players…</div>
                 : orange.map(({ c, pos }) => (
                   <div key={c.id} className="player">
                     <span className="num">{pos}</span><span className="nm">{c.firstName} {c.lastName}</span>

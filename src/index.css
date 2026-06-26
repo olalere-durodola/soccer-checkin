@@ -125,6 +125,41 @@ a { color: inherit; }
 .event-name { font-size: 40px; text-transform: uppercase; }
 .event-date { color: var(--muted); font-weight: 600; margin-top: 2px; }
 
+/* Check-in hero band — turns the form top into a "matchday card" */
+.checkin-screen { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
+.checkin-hero {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #15B970, #0E9D5C);
+  color: #fff; border-radius: var(--r-lg);
+  padding: 22px 22px 24px; margin-bottom: 22px;
+  box-shadow: 0 12px 30px rgba(14, 157, 92, 0.28);
+}
+/* faint diagonal pitch stripes */
+.checkin-hero::before {
+  content: ""; position: absolute; inset: 0; opacity: .12; pointer-events: none;
+  background: repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 26px);
+}
+.checkin-hero > * { position: relative; }
+.checkin-hero .kicker { color: rgba(255,255,255,.85); }
+.checkin-hero .event-name { color: #fff; margin-top: 2px; display: flex; align-items: center; gap: 10px; }
+.checkin-hero .event-date { color: rgba(255,255,255,.85); }
+.ball { font-size: 0.7em; }
+.checkin-hero .status { margin-top: 14px; background: rgba(255,255,255,.18); color: #fff; }
+.checkin-hero .status .dot { background: #fff; }
+.field-hint { font-size: 13px; color: var(--muted); margin-top: 12px; text-align: center; }
+
+/* ── LIVE badge ─────────────────────────────────────────── */
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #0B7C4A; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: pulse 1.1s ease-in-out infinite; }
+
+/* New check-in rows animate in on mount (only newly-keyed rows) */
+@keyframes player-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.player { animation: player-in .35s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .player, .live .dot { animation: none; } }
+
+.waiting { display: inline-flex; align-items: center; gap: 8px; color: var(--faint); font-weight: 500; font-size: 14px; padding: 4px 0; }
+.waiting .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: pulse 1.1s ease-in-out infinite; }
+
 /* ── Confirmation / team reveal (full screen) ───────────── */
 .reveal {
   position: fixed; inset: 0; display: flex; flex-direction: column;
