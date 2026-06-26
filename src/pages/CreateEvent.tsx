@@ -21,7 +21,7 @@ export function CreateEvent() {
   const [name, setName] = useState('')
   const [date, setDate] = useState('')
   const [location, setLocation] = useState<LatLng | null>(null)
-  const [radius, setRadius] = useState(15)
+  const [radius, setRadius] = useState(50)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [address, setAddress] = useState('')

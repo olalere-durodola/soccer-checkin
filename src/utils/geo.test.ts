@@ -28,4 +28,16 @@ describe('isWithinRadius', () => {
     const dist = haversineDistance(51.5, -0.1, 51.5001, -0.1)
     expect(isWithinRadius(51.5, -0.1, 51.5001, -0.1, dist)).toBe(true)
   })
+
+  it('counts a just-outside player as inside when GPS accuracy covers the gap', () => {
+    // ~60 m away, radius 50 → outside on exact math, inside with ±20 m accuracy
+    const player = { lat: 51.50054, lng: -0.1 }
+    expect(isWithinRadius(51.5, -0.1, player.lat, player.lng, 50)).toBe(false)
+    expect(isWithinRadius(51.5, -0.1, player.lat, player.lng, 50, 20)).toBe(true)
+  })
+
+  it('still rejects a far-away player even with accuracy padding', () => {
+    // ~110 m away, radius 50, ±20 m accuracy → still outside
+    expect(isWithinRadius(51.5, -0.1, 51.501, -0.1, 50, 20)).toBe(false)
+  })
 })
