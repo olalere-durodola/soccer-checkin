@@ -268,18 +268,18 @@ export function CheckIn() {
         : 'Getting your location…'
 
   return (
-    <div className="screen">
+    <div className="screen checkin-screen">
       {events.length > 1 && (
         <button className="btn--ghost" onClick={() => { setSelectedEvent(null); setError(''); setPending(false) }}
           style={{ border: 'none', background: 'none', marginBottom: 8 }}>
           ← All games
         </button>
       )}
-      <div className="kicker">Check in</div>
-      <h1 className="event-name">{selectedEvent.name}</h1>
-      <p className="event-date">{selectedEvent.date.toLocaleDateString()}</p>
 
-      <div style={{ margin: '16px 0 22px' }}>
+      <div className="checkin-hero">
+        <div className="kicker">Check in</div>
+        <h1 className="event-name"><span className="ball">⚽</span>{selectedEvent.name}</h1>
+        <p className="event-date">{selectedEvent.date.toLocaleDateString()}</p>
         <span className={`status ${statusCls}`}><span className="dot" />{statusText}</span>
       </div>
 
@@ -298,11 +298,13 @@ export function CheckIn() {
         <button type="submit" className="btn--hero" disabled={loading || pending}>
           {loading ? 'Checking in…' : pending ? 'Locating you…' : 'I Am Here'}
         </button>
-        {pending && (
+        {pending ? (
           <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 12, textAlign: 'center' }}>
             Getting a precise location — this finishes on its own. For a faster lock, step outside, away from buildings.
           </p>
-        )}
+        ) : locationReady ? (
+          <p className="field-hint">Tap when you're on the field.</p>
+        ) : null}
       </form>
     </div>
   )
