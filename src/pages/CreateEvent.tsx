@@ -121,45 +121,44 @@ export function CreateEvent() {
   }
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', padding: 16 }}>
-      <h1 style={{ marginBottom: 24 }}>New Event</h1>
+    <div className="screen" style={{ maxWidth: 700 }}>
+      <div className="kicker">Matchday</div>
+      <h1 style={{ fontSize: 34, textTransform: 'uppercase', margin: '4px 0 22px' }}>New Game</h1>
       <form onSubmit={handleActivate}>
-        <div style={{ marginBottom: 16 }}>
-          <label>Event Name</label>
-          <input value={name} onChange={e => setName(e.target.value)} required
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }} />
+        <div className="field">
+          <label className="label">Game Name</label>
+          <input className="input" value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. Saturday Pick-up" />
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Date</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }} />
+        <div className="field">
+          <label className="label">Date</label>
+          <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} required />
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label>Radius: {radius}m (min 10, max 500)</label>
+        <div className="field">
+          <label className="label">Check-in radius: {radius}m <span style={{ color: 'var(--faint)', fontWeight: 400 }}>(min 10, max 500)</span></label>
           <input type="range" min={10} max={500} value={radius} onChange={e => setRadius(Number(e.target.value))}
             style={{ display: 'block', width: '100%', marginTop: 4 }} />
         </div>
 
-        <div style={{ marginBottom: 12 }}>
-          <label>Search Address</label>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <div className="field">
+          <label className="label">Search Address</label>
+          <div style={{ display: 'flex', gap: 8 }}>
             <input
+              className="input"
               value={address}
               onChange={e => setAddress(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddressSearch())}
-              placeholder="e.g. Central Park, New York"
-              style={{ flex: 1, padding: 8 }}
+              placeholder="e.g. 6409 Everest Dr, Aubrey TX"
+              style={{ flex: 1 }}
             />
-            <button type="button" onClick={handleAddressSearch} disabled={searchLoading}
-              style={{ padding: '8px 16px', background: '#6b7280', color: '#fff', border: 'none', borderRadius: 4 }}>
-              {searchLoading ? '...' : 'Search'}
+            <button type="button" className="btn btn--outline" onClick={handleAddressSearch} disabled={searchLoading}>
+              {searchLoading ? '…' : 'Search'}
             </button>
           </div>
-          {addressError && <p style={{ color: 'red', marginTop: 4, fontSize: 14 }}>{addressError}</p>}
+          {addressError && <p className="error-text" style={{ marginTop: 6, marginBottom: 0 }}>{addressError}</p>}
         </div>
 
-        <p style={{ marginBottom: 8, color: '#666' }}>Or click the map to pin the field location</p>
-        <div style={{ height: 350, marginBottom: 16, border: '1px solid #e5e7eb', borderRadius: 4 }}>
+        <p style={{ marginBottom: 8, color: 'var(--muted)', fontSize: 14 }}>Or click the map to pin the field location</p>
+        <div style={{ height: 350, marginBottom: 16, border: '1px solid var(--line-strong)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
           <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <LocationPicker onPick={ll => { setLocation(ll); setFlyTo(null) }} />
@@ -167,15 +166,15 @@ export function CreateEvent() {
             {location && <Circle center={[location.lat, location.lng]} radius={radius} />}
           </MapContainer>
         </div>
-        {location && <p style={{ color: '#059669', marginBottom: 12 }}>
+        {location && <p style={{ color: '#0B7C4A', marginBottom: 12, fontWeight: 600 }}>
           ✓ Location pinned: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
         </p>}
 
-        {error && <p style={{ color: 'red', marginBottom: 12 }}>{error}</p>}
+        {error && <p className="error-text">{error}</p>}
         <div style={{ display: 'flex', gap: 12 }}>
-          <button type="button" onClick={() => navigate('/admin')} style={{ padding: '10px 20px' }}>Cancel</button>
-          <button type="submit" disabled={loading} style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4 }}>
-            {loading ? 'Activating...' : 'Activate Event'}
+          <button type="button" className="btn btn--outline" onClick={() => navigate('/admin')}>Cancel</button>
+          <button type="submit" className="btn btn--primary" disabled={loading}>
+            {loading ? 'Activating…' : 'Activate Game'}
           </button>
         </div>
       </form>

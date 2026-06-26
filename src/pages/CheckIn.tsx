@@ -201,28 +201,32 @@ export function CheckIn() {
     }
   }
 
-  if (status === 'loading') return <p style={{ padding: 24 }}>Loading...</p>
-  if (status === 'error') return <p style={{ padding: 24 }}>Could not load event, please check your connection and refresh</p>
+  if (status === 'loading') return <div className="screen"><p className="empty">Loading…</p></div>
+  if (status === 'error') return <div className="screen"><p className="empty">Couldn't load the game — check your connection and refresh.</p></div>
 
+  // Full-screen team reveal
   if (confirmed) {
+    const team = confirmed.team
+    const revealCls = team === 'yellow' ? 'reveal--yellow' : team === 'orange' ? 'reveal--orange' : 'reveal--neutral'
     return (
-      <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
-        <h1 style={{ color: 'green', marginBottom: 16 }}>✓ You're checked in!</h1>
-        <p>{confirmed.firstName} {confirmed.lastName} at {confirmed.time}</p>
-        {confirmed.team === 'orange' && (
-          <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600 }}>🟠 You're on the Orange team</p>
+      <div className={`reveal ${revealCls}`}>
+        <div className="reveal-check">✓</div>
+        <div className="reveal-kicker">You're in</div>
+        <div className="reveal-name">{confirmed.firstName}</div>
+        {team ? (
+          <div className="reveal-team">{team === 'yellow' ? '🟡' : '🟠'} Team {team}</div>
+        ) : (
+          <div className="reveal-note">You're checked in — team assigned at the field.</div>
         )}
-        {confirmed.team === 'yellow' && (
-          <p style={{ marginTop: 12, fontSize: 18, fontWeight: 600 }}>🟡 You're on the Yellow team</p>
-        )}
+        <div className="reveal-time">{confirmed.firstName} {confirmed.lastName} · {confirmed.time}</div>
       </div>
     )
   }
 
   if (status === 'no-event' || events.length === 0) {
     return (
-      <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
-        <p>No active event right now</p>
+      <div className="screen">
+        <div className="card card-pad empty" style={{ marginTop: 40 }}>No active game right now.</div>
       </div>
     )
   }
@@ -230,20 +234,18 @@ export function CheckIn() {
   // Multiple events — show picker first
   if (events.length > 1 && !selectedEvent) {
     return (
-      <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
-        <h1 style={{ marginBottom: 24 }}>Select Your Event</h1>
+      <div className="screen">
+        <div className="kicker">Pick-up game</div>
+        <h1 style={{ fontSize: 34, textTransform: 'uppercase', margin: '4px 0 20px' }}>Select your game</h1>
         {events.map(ev => (
           <button
             key={ev.id}
             onClick={() => setSelectedEvent(ev)}
-            style={{
-              display: 'block', width: '100%', padding: 16, marginBottom: 12,
-              textAlign: 'left', background: '#fff', border: '1px solid #e5e7eb',
-              borderRadius: 8, cursor: 'pointer'
-            }}
+            className="card card-pad"
+            style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 12 }}
           >
-            <strong>{ev.name}</strong>
-            <span style={{ display: 'block', color: '#666', fontSize: 14, marginTop: 4 }}>
+            <strong style={{ fontSize: 17 }}>{ev.name}</strong>
+            <span style={{ display: 'block', color: 'var(--muted)', fontSize: 14, marginTop: 4 }}>
               {ev.date.toLocaleDateString()}
             </span>
           </button>
@@ -256,58 +258,48 @@ export function CheckIn() {
 
   const acc = coords?.accuracy
   const locationReady = coords != null && acc != null && acc <= MAX_ACCURACY_M
+  const statusCls = locationDenied ? 'status--err' : locationReady ? 'status--ok' : 'status--warn'
   const statusText = locationDenied
-    ? '⚠ Location access denied — check browser settings'
+    ? 'Location off — turn it on in settings'
     : locationReady
-      ? `✓ Location ready${acc ? ` (±${Math.round(acc)}m)` : ''}`
+      ? `Location ready${acc ? ` · ±${Math.round(acc)}m` : ''}`
       : coords
-        ? `⟳ Improving GPS accuracy${acc ? ` (±${Math.round(acc)}m)` : ''}…`
-        : '⟳ Getting your location…'
+        ? `Sharpening GPS${acc ? ` · ±${Math.round(acc)}m` : ''}…`
+        : 'Getting your location…'
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
-      <h1 style={{ marginBottom: 8 }}>{selectedEvent.name}</h1>
-      <p style={{ color: '#666', marginBottom: 4 }}>{selectedEvent.date.toLocaleDateString()}</p>
-      <p style={{ fontSize: 13, marginBottom: 20, color: locationDenied ? '#dc2626' : locationReady ? '#059669' : '#f59e0b' }}>
-        {statusText}
-      </p>
+    <div className="screen">
       {events.length > 1 && (
-        <button onClick={() => { setSelectedEvent(null); setError(''); setPending(false) }}
-          style={{ marginBottom: 16, background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0 }}>
-          ← Back to events
+        <button className="btn--ghost" onClick={() => { setSelectedEvent(null); setError(''); setPending(false) }}
+          style={{ border: 'none', background: 'none', marginBottom: 8 }}>
+          ← All games
         </button>
       )}
+      <div className="kicker">Check in</div>
+      <h1 className="event-name">{selectedEvent.name}</h1>
+      <p className="event-date">{selectedEvent.date.toLocaleDateString()}</p>
+
+      <div style={{ margin: '16px 0 22px' }}>
+        <span className={`status ${statusCls}`}><span className="dot" />{statusText}</span>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="firstName">First Name</label>
-          <input
-            id="firstName"
-            value={firstName}
-            onChange={e => setFirstName(e.target.value)}
-            maxLength={50}
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }}
-          />
+        <div className="field">
+          <label className="label" htmlFor="firstName">First Name</label>
+          <input id="firstName" className="input" value={firstName}
+            onChange={e => setFirstName(e.target.value)} maxLength={50} autoComplete="given-name" />
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="lastName">Last Name</label>
-          <input
-            id="lastName"
-            value={lastName}
-            onChange={e => setLastName(e.target.value)}
-            maxLength={50}
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 4 }}
-          />
+        <div className="field">
+          <label className="label" htmlFor="lastName">Last Name</label>
+          <input id="lastName" className="input" value={lastName}
+            onChange={e => setLastName(e.target.value)} maxLength={50} autoComplete="family-name" />
         </div>
-        {error && <p style={{ color: 'red', marginBottom: 12 }}>{error}</p>}
-        <button
-          type="submit"
-          disabled={loading || pending}
-          style={{ width: '100%', padding: 16, fontSize: 18, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8 }}
-        >
+        {error && <p className="error-text">{error}</p>}
+        <button type="submit" className="btn--hero" disabled={loading || pending}>
           {loading ? 'Checking in…' : pending ? 'Locating you…' : 'I Am Here'}
         </button>
         {pending && (
-          <p style={{ fontSize: 13, color: '#666', marginTop: 10, textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 12, textAlign: 'center' }}>
             Getting a precise location — this finishes on its own. For a faster lock, step outside, away from buildings.
           </p>
         )}

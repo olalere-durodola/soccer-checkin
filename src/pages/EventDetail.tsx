@@ -41,41 +41,39 @@ export function EventDetail() {
   if (!event) return <p style={{ padding: 24 }}>Event not found</p>
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 16 }}>
-      <button onClick={() => navigate('/admin')} style={{ marginBottom: 16 }}>← Back</button>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+    <div className="screen screen-wide">
+      <button className="btn--ghost" onClick={() => navigate('/admin')} style={{ border: 'none', background: 'none', marginBottom: 8 }}>← Back</button>
+      <div className="bar" style={{ alignItems: 'flex-start' }}>
         <div>
-          <h1>{event.name}</h1>
-          <p style={{ color: '#666' }}>{event.date.toLocaleDateString()}</p>
-          {event.closedAt && <p style={{ color: '#999', fontSize: 14 }}>Closed: {event.closedAt.toLocaleString()}</p>}
+          <h1 style={{ fontSize: 30, textTransform: 'uppercase' }}>{event.name}</h1>
+          <p style={{ color: 'var(--muted)', fontWeight: 600 }}>{event.date.toLocaleDateString()}</p>
+          {event.closedAt && <p style={{ color: 'var(--faint)', fontSize: 13 }}>Closed: {event.closedAt.toLocaleString()}</p>}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => downloadCsv(checkins, event.name)}>Export CSV</button>
-          <button onClick={() => downloadPdf(checkins, event.name, event.date)}>Export PDF</button>
+        <div className="row-actions">
+          <button className="btn btn--outline" onClick={() => downloadCsv(checkins, event.name)}>Export CSV</button>
+          <button className="btn btn--outline" onClick={() => downloadPdf(checkins, event.name, event.date)}>Export PDF</button>
         </div>
       </div>
 
-      <p style={{ marginBottom: 12, color: '#666' }}>{checkins.length} checked in</p>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-            <th style={{ textAlign: 'left', padding: '8px 4px', width: 40 }}>#</th>
-            <th style={{ textAlign: 'left', padding: '8px 4px' }}>First Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 4px' }}>Last Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 4px' }}>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {checkins.map((c, i) => (
-            <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-              <td style={{ padding: '8px 4px' }}>{i + 1}</td>
-              <td style={{ padding: '8px 4px' }}>{c.firstName}</td>
-              <td style={{ padding: '8px 4px' }}>{c.lastName}</td>
-              <td style={{ padding: '8px 4px' }}>{c.timestamp.toLocaleTimeString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="scoreboard"><span className="count">{checkins.length}</span><span className="count-label">checked in</span></div>
+
+      <div className="card" style={{ overflow: 'hidden', marginTop: 14 }}>
+        <table className="table">
+          <thead>
+            <tr><th style={{ width: 40 }}>#</th><th>First Name</th><th>Last Name</th><th>Time</th></tr>
+          </thead>
+          <tbody>
+            {checkins.map((c, i) => (
+              <tr key={c.id}>
+                <td>{i + 1}</td>
+                <td>{c.firstName}</td>
+                <td>{c.lastName}</td>
+                <td>{c.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
