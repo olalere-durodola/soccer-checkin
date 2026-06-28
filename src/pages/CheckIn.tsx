@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { collection, query, where, getDocs, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, runTransaction, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useActiveEvent } from '../hooks/useActiveEvent'
 import { validateName, buildFullName } from '../utils/validation'
 import { isWithinRadius } from '../utils/geo'
+import { teamForPosition } from '../utils/teams'
 import type { Event } from '../types'
 
 const LOCAL_KEY = 'checkin_state'
@@ -132,31 +133,29 @@ export function CheckIn() {
       setLoading(false); submitGuardRef.current = false; return
     }
 
-    // Team assignment (first 20 alternate orange/yellow)
+    // Atomic team assignment + write. A transaction serialises concurrent
+    // check-ins on the per-event counter, so every player gets a unique
+    // position → alternation never collides and teams stay balanced.
     let team: 'yellow' | 'orange' | null = null
     try {
-      const countSnap = await getCountFromServer(query(
-        collection(db, 'checkins'),
-        where('eventId', '==', selectedEvent.id)
-      ))
-      const position = countSnap.data().count + 1
-      if (position <= 20) team = position % 2 !== 0 ? 'orange' : 'yellow'
-    } catch {
-      if (!mountedRef.current) return
-      setError('Could not verify your check-in status, please try again')
-      setLoading(false); submitGuardRef.current = false; return
-    }
-
-    // Write check-in
-    try {
-      await addDoc(collection(db, 'checkins'), {
-        eventId: selectedEvent.id,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        fullName,
-        timestamp: serverTimestamp(),
-        coords: { lat: c.latitude, lng: c.longitude },
-        team,
+      const counterRef = doc(db, 'counters', selectedEvent.id)
+      const checkinRef = doc(collection(db, 'checkins'))
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef)
+        const position = (snap.exists() ? (snap.data().count as number) : 0) + 1
+        team = teamForPosition(position)
+        if (snap.exists()) tx.update(counterRef, { count: position })
+        else tx.set(counterRef, { count: position })
+        tx.set(checkinRef, {
+          eventId: selectedEvent.id,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          fullName,
+          timestamp: serverTimestamp(),
+          coords: { lat: c.latitude, lng: c.longitude },
+          team,
+          position,
+        })
       })
     } catch {
       if (!mountedRef.current) return
