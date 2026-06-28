@@ -18,6 +18,7 @@ export interface Checkin {
   timestamp: Date
   coords: { lat: number; lng: number }
   team?: 'yellow' | 'orange' | null
+  position?: number
 }
 
 export interface Admin {
